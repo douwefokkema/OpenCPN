@@ -110,4 +110,12 @@ typedef struct {
     int    nSats;
 } GenericPosDatEx;
 
+//    A collection of active leg Data structure
+typedef struct {
+  double xte;
+  double btw;
+  double dtw;
+  wxString wp_name;
+} ActiveLegDat;
+
 #endif

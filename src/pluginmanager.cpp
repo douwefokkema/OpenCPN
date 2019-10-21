@@ -2002,6 +2002,11 @@ void PlugInManager::SendAISSentenceToAllPlugIns(const wxString &sentence)
     }
 }
 
+void PlugInManager::SendActiveLegInfoToAllPlugIns(ActiveLegDat *infos)
+{
+
+}
+
 void PlugInManager::SendPositionFixToAllPlugIns(GenericPosDatEx *ppos)
 {
     //    Send basic position fix

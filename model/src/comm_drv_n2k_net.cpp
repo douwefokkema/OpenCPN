@@ -868,6 +868,7 @@ bool CommDriverN2KNet::ProcessActisense_NGT(
 
 bool CommDriverN2KNet::ProcessActisense_ASCII_RAW(
     const std::vector<unsigned char>& packet) {
+
   can_frame frame;
 
   while (!m_circle.IsEmpty()) {
@@ -890,12 +891,14 @@ bool CommDriverN2KNet::ProcessActisense_ASCII_RAW(
       token = tkz.GetNextToken();  // R/T
       // Record the R/T flag, for use in device detect logic
       m_TX_flag = token[0];
+      wxLogMessage(wxT("$$$ received R/T %s"), token);
 
       // can_id;
       token = tkz.GetNextToken();
       long canID;
       token.ToLong(&canID, 16);
       frame.can_id = canID;
+      wxLogMessage(wxT("$$$ received can id %s"), token);
 
       // 8 data bytes, if present, 0 otherwise
       unsigned char bytes[8];
@@ -903,6 +906,7 @@ bool CommDriverN2KNet::ProcessActisense_ASCII_RAW(
       for (unsigned int i = 0; i < 8; i++) {
         if (tkz.HasMoreTokens()) {
           token = tkz.GetNextToken();
+          wxLogMessage(wxT("$$$ received databyte %s"), token);
           long tui;
           token.ToLong(&tui, 16);
           bytes[i] = (uint8_t)tui;
@@ -1883,15 +1887,23 @@ bool CommDriverN2KNet::SendN2KNetwork(
   PrepareForTX();
 
   std::vector<std::vector<unsigned char>> out_data = GetTxVector(msg, addr);
-  SendSentenceNetwork(out_data);
-  m_driver_stats.tx_count += msg->payload.size();
+  bool sent = SendSentenceNetwork(out_data);
+  
+  wxLogMessage(wxT("$$$ SendSentenceNetwork returned=%i"), sent);
+  if (sent) {  // No error
+    m_driver_stats.tx_count += msg->payload.size();
 
-  // Create internal message and notify upper layers
-  std::vector<unsigned char> msg_payload = PrepareLogPayload(msg, addr);
-  m_listener.Notify(
-      std::make_shared<const Nmea2000Msg>(msg->PGN.pgn, msg_payload, addr));
+    // Create internal message and notify upper layers (only after successful
+    // send)
+    std::vector<unsigned char> msg_payload = PrepareLogPayload(msg, addr);
+    m_listener.Notify(
+        std::make_shared<const Nmea2000Msg>(msg->PGN.pgn, msg_payload, addr));
+  } else {
+    // mark unavailable to assist diagnostics/UI
+    m_driver_stats.available = false;
+  }
 
-  return true;
+  return sent;
 };
 
 bool CommDriverN2KNet::SendSentenceNetwork(
@@ -1932,16 +1944,29 @@ bool CommDriverN2KNet::SendSentenceNetwork(
         }
       }
       break;
-    case UDP:
-#if 0
-      udp_socket = dynamic_cast<wxDatagramSocket*>(GetTSock());
+    case UDP: {
+      wxDatagramSocket* udp_socket =
+          dynamic_cast<wxDatagramSocket*>(GetTSock());
       if (udp_socket && udp_socket->IsOk()) {
-        udp_socket->SendTo(GetAddr(), payload.mb_str(), payload.size());
-        if (udp_socket->Error()) ret = false;
-      } else
+        wxIPV4address dest = GetAddr();
+        // Send each payload vector as a separate datagram
+        for (const std::vector<unsigned char>& v : payload) {
+          if (v.empty()) continue;
+          udp_socket->SendTo(dest, reinterpret_cast<const char*>(v.data()),
+                             v.size());
+          if (udp_socket->Error()) {
+            wxLogMessage(wxT("$$$ error sending"));
+            ret = false;
+            break;
+          }
+          // small throttle to avoid bursting the network/device
+          wxMilliSleep(1);
+        }
+      } else {
+        wxLogMessage(wxT("$$$ error Socket not OK"));
         ret = false;
-#endif
-      break;
+      }
+    } break;
 
     case GPSD:
     default:

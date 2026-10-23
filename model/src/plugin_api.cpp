@@ -237,6 +237,7 @@ CommDriverResult WriteCommDriverN2K(
   for (auto& d : drivers)
     if (d->Key() == handle) found = d.get();
   if (!found) {
+    wxLogMessage(wxT("$$$ error invalid handle"));
     return RESULT_COMM_INVALID_HANDLE;
   }
   auto dest_addr =
@@ -244,6 +245,7 @@ CommDriverResult WriteCommDriverN2K(
   auto msg =
       std::make_shared<const Nmea2000Msg>(_PGN, *payload, dest_addr, priority);
   bool result = found->SendMessage(msg, dest_addr);
+  wxLogMessage(wxT("$$$ sending message pgn=%i, result =%i"), _PGN, result);
 
   return RESULT_COMM_NO_ERROR;
 }

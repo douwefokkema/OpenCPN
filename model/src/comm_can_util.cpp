@@ -69,19 +69,58 @@ bool IsFastMessagePGN(unsigned pgn) {
   return found != haystack.end();
 }
 
-unsigned long BuildCanID(int priority, int source, int destination, int pgn) {
-  // build CanID
-  unsigned long cid = 0;
-  unsigned char pf = (unsigned char)(pgn >> 8);
+unsigned long BuildCanID(uint8_t priority, uint8_t source,
+                         uint8_t destination, uint32_t pgn) {
+  
+/**
+ * @brief Constructs a 29-bit NMEA 2000 CAN ID.
+ *
+ * @param pgn           The 18-bit Parameter Group Number (e.g., 127505 for
+ * Fluid Level).
+ * @param priority      The 3-bit priority (0 = highest, 7 = lowest. Default is
+ * 3 or 6).
+ * @param sourceAddress The 8-bit source address of your transmitting device.
+ * @param destAddress   The 8-bit destination address (only used for PDU1
+ * peer-to-peer PGNs).
+ * @return uint32_t     The final 29-bit extended CAN ID.
+ */
+
+  // Extract PF (Protocol Format) from the PGN to check if it's PDU1 or PDU2
+  // PGN layout: Data Page (bit 16), PF (bits 8-15), PS (bits 0-7)
+  uint8_t pf = static_cast<uint8_t>((pgn >> 8) & 0xFF);
+
+  uint32_t canId = 0;
+
+  // 1. Set Priority (bits 26-28)
+  canId |= static_cast<uint32_t>(priority & 0x07) << 26;
+
+  // 2. Set Data Page (bit 25) from the PGN (bit 16 of PGN)
+  uint8_t dp = static_cast<uint8_t>((pgn >> 16) & 0x01);
+  canId |= static_cast<uint32_t>(dp) << 25;
+
+  // Note: Bit 24 is the NMEA Reserved bit, which is always 0.
+
+  // 3. Set Protocol Format (bits 16-23)
+  canId |= static_cast<uint32_t>(pf) << 16;
+
+  // 4. Set Protocol Specific field (bits 8-15)
   if (pf < 240) {
-    cid = ((unsigned long)(priority & 0x7)) << 26 | pgn << 8 |
-          ((unsigned long)destination) << 8 | (unsigned long)source;
+    // PDU1: Peer-to-Peer. The PS field contains the Destination Address.
+    canId |= static_cast<uint32_t>(destination) << 8;
   } else {
-    cid = ((unsigned long)(priority & 0x7)) << 26 | pgn << 8 |
-          (unsigned long)source;
+    // PDU2: Broadcast. The PS field contains the Group Extension from the PGN.
+    uint8_t groupExtension = static_cast<uint8_t>(pgn & 0xFF);
+    canId |= static_cast<uint32_t>(groupExtension) << 8;
   }
-  return cid;
+
+  // 5. Set Source Address (bits 0-7)
+  canId |= source;
+
+  return canId;
 }
+
+
+
 
 // CanHeader implementation
 

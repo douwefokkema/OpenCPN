@@ -54,8 +54,8 @@ struct can_frame {
   uint8_t data[CAN_MAX_DLEN];
 };
 #endif
-
-unsigned long BuildCanID(int priority, int source, int destination, int pgn);
+unsigned long BuildCanID(uint8_t priority, uint8_t source, uint8_t destAddress,
+                            uint32_t pgn);
 bool IsFastMessagePGN(unsigned pgn);
 
 /// CAN v2.0 29 bit header as used by NMEA 2000

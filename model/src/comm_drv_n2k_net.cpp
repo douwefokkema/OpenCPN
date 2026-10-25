@@ -1587,18 +1587,6 @@ std::vector<std::vector<unsigned char>> CommDriverN2KNet::GetTxVector(
         std::vector<unsigned char> out_vec;
 
         // No Need to create a timestamp or frame R/T indicator
-#if 0
-        // time header
-        wxDateTime now = wxDateTime::Now();
-        wxString stime = now.Format("%H:%M:%S");
-        stime += ".000 ";
-        std::string sstime = stime.ToStdString();
-        for (unsigned char s : sstime) header_vec.push_back(s);
-
-        // Tx indicator
-        header_vec.push_back('T');
-        header_vec.push_back(' ');
-#endif
 
         // Craft the canID
         // No need to specify the source address
@@ -1609,16 +1597,18 @@ std::vector<std::vector<unsigned char>> CommDriverN2KNet::GetTxVector(
         wxLogMessage(wxT("$$$ prio=%i, source=%i, dest=%i, pgn=%i, can_id=%i, canid=%0X"),
                      msg->priority, source, dest_addr->address, msg->PGN.pgn, can_id, can_id);
         std::stringstream ss;
-        ss << std::setfill('0') << std::setw(8) << std::hex << can_id;
+        // YD only likes uppercase!
+        ss << std::setfill('0') << std::setw(8) << std::hex << std::uppercase << can_id;
+        wxLogMessage(wxT("$$$ ss=%s"), ss.str());
         for (unsigned char s : ss.str()) header_vec.push_back(s);
         header_vec.push_back(' ');
-        wxLogMessage(wxT("$$$ ss=%s"), ss.str());
         // format the required number of short packets, in a loop
         int payload_size = msg->payload.size();
         unsigned char temp[8];  // {0,0,0,0,0,0,0,0};
         int cur = 0;
         int nframes =
             (payload_size > 6 ? (payload_size - 6 - 1) / 7 + 1 + 1 : 1);
+        wxLogMessage(wxT("$$$ nframes=%i"), nframes);
         bool result = true;
         for (int i = 0; i < nframes && result; i++) {
           temp[0] = i | m_order;  // frame counter
@@ -1660,8 +1650,19 @@ std::vector<std::vector<unsigned char>> CommDriverN2KNet::GetTxVector(
           out_vec.push_back(0x0a);
 
           tx_vector.push_back(out_vec);
+          wxString test;
+          for (size_t i = 0; i < out_vec.size(); ++i) {
+            test << out_vec[i];
+          }
+          wxLogMessage(wxT("$$$ out_vec=%s"), test);
         }  // for loop
+        wxString test;
+        for (size_t i = 0; i < header_vec.size(); ++i) {
+          test << header_vec[i];
+        }
+        wxLogMessage(wxT("$$$ header_vec=%s"), test);
       }
+      
     } break;
     case N2KFormat_Actisense_N2K_ASCII: {
       // Source: Actisense own documentation `NMEA 2000 ASCII Output

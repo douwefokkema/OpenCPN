@@ -1546,7 +1546,7 @@ std::vector<std::vector<unsigned char>> CommDriverN2KNet::GetTxVector(
     case N2KFormat_Actisense_RAW_ASCII: {
       //  00:34:02.718 R 15FD0800 FF 00 01 CA 6F FF FF FF
       if (!IsFastMessagePGN(msg->PGN.pgn) && msg->payload.size() <= 8) {
-        // Single packet message
+        // Single packet message  $$$ to be tested later
         wxLogMessage(wxT("$$$ single packet message msg->PGN.pgn=%i, "
                          "msg->payload.size()=%i"),
                      msg->PGN.pgn, msg->payload.size());

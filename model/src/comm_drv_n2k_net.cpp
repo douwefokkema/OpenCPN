@@ -1603,15 +1603,16 @@ std::vector<std::vector<unsigned char>> CommDriverN2KNet::GetTxVector(
         // Craft the canID
         // No need to specify the source address
         // The TX frame will adopt the gateway's claimed N2K address.
-        unsigned long can_id =
-            BuildCanID(msg->priority, 0, dest_addr->address, msg->PGN.pgn);
-        wxLogMessage(wxT("$$$ prio=%i, dest=%i, pgn=%i, can_id=%u"),
-                     msg->priority, dest_addr->address, msg->PGN.pgn, can_id);
+        uint8_t source = 15;
+        uint32_t can_id =
+            BuildCanID(msg->priority, source, dest_addr->address, msg->PGN.pgn);
+        wxLogMessage(wxT("$$$ prio=%i, source=%i, dest=%i, pgn=%i, can_id=%i, canid=%0X"),
+                     msg->priority, source, dest_addr->address, msg->PGN.pgn, can_id, can_id);
         std::stringstream ss;
         ss << std::setfill('0') << std::setw(8) << std::hex << can_id;
         for (unsigned char s : ss.str()) header_vec.push_back(s);
         header_vec.push_back(' ');
-
+        wxLogMessage(wxT("$$$ ss=%s"), ss.str());
         // format the required number of short packets, in a loop
         int payload_size = msg->payload.size();
         unsigned char temp[8];  // {0,0,0,0,0,0,0,0};

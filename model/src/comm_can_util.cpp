@@ -24,6 +24,7 @@
 
 #include <algorithm>
 #include <vector>
+#include <wx/wxprec.h>
 
 #include "model/comm_can_util.h"
 
@@ -71,8 +72,9 @@ bool IsFastMessagePGN(unsigned pgn) {
 
 unsigned long BuildCanID(uint8_t priority, uint8_t source,
                          uint8_t destination, uint32_t pgn) {
-  
-/**
+  wxLogMessage(wxT("$$$build canid prio=%i, source=%i, dest=%i, pgn=%i"),
+               priority, source, destination, pgn);
+  /**
  * @brief Constructs a 29-bit NMEA 2000 CAN ID.
  *
  * @param pgn           The 18-bit Parameter Group Number (e.g., 127505 for
@@ -93,20 +95,21 @@ unsigned long BuildCanID(uint8_t priority, uint8_t source,
 
   // 1. Set Priority (bits 26-28)
   canId |= static_cast<uint32_t>(priority & 0x07) << 26;
-
+  wxLogMessage(wxT("$$$ canid=%i"), canId);
   // 2. Set Data Page (bit 25) from the PGN (bit 16 of PGN)
   uint8_t dp = static_cast<uint8_t>((pgn >> 16) & 0x01);
   canId |= static_cast<uint32_t>(dp) << 25;
-
+  wxLogMessage(wxT("$$$ canid=%i"), canId);
   // Note: Bit 24 is the NMEA Reserved bit, which is always 0.
 
   // 3. Set Protocol Format (bits 16-23)
   canId |= static_cast<uint32_t>(pf) << 16;
-
+  wxLogMessage(wxT("$$$ canid=%i"), canId);
   // 4. Set Protocol Specific field (bits 8-15)
   if (pf < 240) {
     // PDU1: Peer-to-Peer. The PS field contains the Destination Address.
     canId |= static_cast<uint32_t>(destination) << 8;
+    wxLogMessage(wxT("$$$ canid=%i"), canId);
   } else {
     // PDU2: Broadcast. The PS field contains the Group Extension from the PGN.
     uint8_t groupExtension = static_cast<uint8_t>(pgn & 0xFF);
@@ -115,7 +118,7 @@ unsigned long BuildCanID(uint8_t priority, uint8_t source,
 
   // 5. Set Source Address (bits 0-7)
   canId |= source;
-
+  wxLogMessage(wxT("$$$ canid=%i, hex=%0X"), canId, canId);
   return canId;
 }
 

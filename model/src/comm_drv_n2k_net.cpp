@@ -308,7 +308,7 @@ void CommDriverN2KNet::OpenNetworkUDP(unsigned int addr) {
   if (m_params.direction != PortDirection::kOutput &&
       m_params.direction != PortDirection::kUpload) {
     //  We need a local (bindable) address to create the Datagram receive socket
-    // Set up the recieve socket
+    // Set up the receive socket
     wxIPV4address conn_addr;
     conn_addr.Service(GetNetPort());
     conn_addr.AnyAddress();
@@ -532,8 +532,6 @@ void CommDriverN2KNet::HandleCanFrameInput(const can_frame& frame) {
 
   CanHeader header(frame);
   if (header.IsFastMessage()) {
-    wxLogMessage(wxT("$$$ fast message prio=%i, source=%i, destination=%i, pgn=%i"),
-                 header.priority, header.source, header.destination, header.pgn);
     position = fast_messages->FindMatchingEntry(header, frame.data[0]);
     if (position == kNotFound) {
       // Not an existing fast message:
@@ -887,21 +885,31 @@ bool CommDriverN2KNet::ProcessActisense_ASCII_RAW(
       m_sentence.clear();
       wxStringTokenizer tkz(ss, " ");
 
+      // Frames without valid time stamp and Transmit (T) frames are considered not valid.
+      // Tx frames are frames that were transmitted by devices on the net,
+      // we do not want to receice our own frames again.
+      // This means that devices on the network can not communicate with each other
+      bool valid_frame = true;
+
       // Discard first token
       wxString token = tkz.GetNextToken();  // time stamp
       wxLogMessage(wxT("$$$ received time stamp %s"), token);
+      if (token[2] != ':' || token[5] != ':' || token[8] != '.') {
+        valid_frame = false;
+      }
 
       token = tkz.GetNextToken();  // R/T
       // Record the R/T flag, for use in device detect logic
       m_TX_flag = token[0];
-      wxLogMessage(wxT("$$$ received R/T %s"), token);
+      if (token[0] == 'T') {
+        valid_frame = false;
+      }
 
       // can_id;
       token = tkz.GetNextToken();
       long canID;
       token.ToLong(&canID, 16);
       frame.can_id = canID;
-      wxLogMessage(wxT("$$$ received can id %s"), token);
 
       // 8 data bytes, if present, 0 otherwise
       unsigned char bytes[8];
@@ -909,14 +917,15 @@ bool CommDriverN2KNet::ProcessActisense_ASCII_RAW(
       for (unsigned int i = 0; i < 8; i++) {
         if (tkz.HasMoreTokens()) {
           token = tkz.GetNextToken();
-          wxLogMessage(wxT("$$$ received databyte %s"), token);
           long tui;
           token.ToLong(&tui, 16);
           bytes[i] = (uint8_t)tui;
         }
       }
       memcpy(&frame.data, bytes, 8);
-      HandleCanFrameInput(frame);
+      if (valid_frame) {
+        HandleCanFrameInput(frame);
+      }
     }
   }
   return true;
@@ -1920,7 +1929,7 @@ bool CommDriverN2KNet::SendN2KNetwork(
     m_driver_stats.available = false;
   }
 
-  return sent;
+  return sent;  // 1 means sending successfull
 };
 
 bool CommDriverN2KNet::SendSentenceNetwork(

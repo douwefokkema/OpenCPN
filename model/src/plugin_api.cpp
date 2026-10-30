@@ -245,9 +245,31 @@ CommDriverResult WriteCommDriverN2K(
   auto msg =
       std::make_shared<const Nmea2000Msg>(_PGN, *payload, dest_addr, priority);
   bool result = found->SendMessage(msg, dest_addr);
-  wxLogMessage(wxT("$$$ sending message pgn=%i, result =%i"), _PGN, result);
+  if (result) {
+    wxLogMessage(wxT("$$$ result=%i"), result);
+    wxLogMessage(wxT("$$$ sending message no Error return 0, pgn=%i"), _PGN);
+    return RESULT_COMM_NO_ERROR;  //  result = 1 : No error,  but return 0 for no error
+  } else {
+    wxLogMessage(wxT("$$$ result=%i"), result);
+    wxLogMessage(wxT("$$$ sending message Error pgn=%i, result =%i, return 3"), _PGN, result);
+    return RESULT_COMM_TX_ERROR;
+  };
+  
 
-  return RESULT_COMM_NO_ERROR;
+  //typedef enum CommDriverResult {
+  //  /** Operation completed successfully */
+  //  RESULT_COMM_NO_ERROR = 0,
+  //  /** Invalid or unknown driver handle specified */
+  //  RESULT_COMM_INVALID_HANDLE,
+  //  /** Invalid parameters provided to operation */
+  //  RESULT_COMM_INVALID_PARMS,
+  //  /** Error occurred during transmission */
+  //  RESULT_COMM_TX_ERROR,
+  //  /** Failed to register with gateway device */
+  //  RESULT_COMM_REGISTER_GATEWAY_ERROR,
+  //  /** Failed to register PGN parameters */
+  //  RESULT_COMM_REGISTER_PGN_ERROR
+  //} _CommDriverResult;
 }
 
 CommDriverResult RegisterTXPGNs(DriverHandle handle,

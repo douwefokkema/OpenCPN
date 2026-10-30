@@ -893,7 +893,6 @@ bool CommDriverN2KNet::ProcessActisense_ASCII_RAW(
 
       // Discard first token
       wxString token = tkz.GetNextToken();  // time stamp
-      wxLogMessage(wxT("$$$ received time stamp %s"), token);
       if (token[2] != ':' || token[5] != ':' || token[8] != '.') {
         valid_frame = false;
       }

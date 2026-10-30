@@ -72,8 +72,6 @@ bool IsFastMessagePGN(unsigned pgn) {
 
 uint32_t BuildCanID(uint8_t priority, uint8_t source, uint8_t destination, uint32_t pgn) {
   // build CanID
-  wxLogMessage(wxT("$$$build canid prio=%i, source=%i, dest=%i, pgn=%i"),
-              priority, source, destination, pgn);
   unsigned long cid = 0;
   unsigned char pf = (unsigned char)(pgn >> 8);
   pf &= 0xff;
@@ -84,7 +82,6 @@ uint32_t BuildCanID(uint8_t priority, uint8_t source, uint8_t destination, uint3
     cid = ((unsigned long)(priority & 0x7)) << 26 | pgn << 8 |
           (unsigned long)source;
   }
-  wxLogMessage(wxT("$$$ canid=%i, hex=%0X"), cid, cid);
   return cid;
 }
 

@@ -452,6 +452,7 @@ void CommDriverN2KNet::HandleResume() {
 
 bool CommDriverN2KNet::SendMessage(std::shared_ptr<const NavMsg> msg,
                                    std::shared_ptr<const NavAddr> addr) {
+  wxLogMessage(wxT("$$$ SendMessage"));
   if (!msg) return false;
   auto msg_n2k = std::dynamic_pointer_cast<const Nmea2000Msg>(msg);
   auto dest_addr_n2k = std::static_pointer_cast<const NavAddr2000>(addr);
@@ -964,7 +965,6 @@ bool CommDriverN2KNet::ProcessActisense_ASCII_N2K(
       unsigned long PGN;
       sPGN.ToULong(&PGN, 16);
       // printf("  PGN: %ld\n", PGN);
-      wxLogMessage(wxT("$$$ received pgn= %l"), PGN);
 
       // data field
       wxString sdata = tkz.GetNextToken();
@@ -1282,8 +1282,10 @@ void CommDriverN2KNet::OnSocketEvent(wxSocketEvent& event) {
       // Only invoke DetectFormat() on every tenth message:
       m_detect_count = (m_detect_count + 1) % 10;
       if (m_detect_count <= 0) m_n2k_format = DetectFormat(data);
-      // $$$ only for test, force format to N2KFormat_Actisense_RAW_ASCII
-      m_n2k_format = N2KFormat_Actisense_RAW_ASCII;
+      if (m_n2k_format != m_n2k_format) {
+        wxLogMessage(wxT("Current network message format = %i"), m_n2k_format);
+        wxLogMessage(wxT("Can only transmit N2KFormat_Actisense_RAW_ASCII (same as YD raw format"));
+      }
 
       switch (m_n2k_format) {
         case N2KFormat_Actisense_RAW_ASCII:
@@ -1545,19 +1547,14 @@ std::vector<std::vector<unsigned char>> CommDriverN2KNet::GetTxVector(
     const std::shared_ptr<const NavAddr2000>& dest_addr) {
   std::vector<std::vector<unsigned char>> tx_vector;
 
-  m_n2k_format = N2KFormat_Actisense_RAW_ASCII; // $$$ force format again
-
   // Branch based on detected network data format currently in use
   switch (m_n2k_format) {
     case N2KFormat_YD_RAW:
       break;
     case N2KFormat_Actisense_RAW_ASCII: {
+      wxLogMessage(wxT("$$$ sending pgn=%i"), msg->PGN.pgn);
       //  00:34:02.718 R 15FD0800 FF 00 01 CA 6F FF FF FF
       if (!IsFastMessagePGN(msg->PGN.pgn) && msg->payload.size() <= 8) {
-        // Single packet message  $$$ to be tested later
-        wxLogMessage(wxT("$$$ single packet message msg->PGN.pgn=%i, "
-                         "msg->payload.size()=%i"),
-                     msg->PGN.pgn, msg->payload.size());
         std::vector<unsigned char> header_vec;
         std::vector<unsigned char> out_vec;
 
@@ -1566,8 +1563,6 @@ std::vector<std::vector<unsigned char>> CommDriverN2KNet::GetTxVector(
         // The TX frame will adopt the gateway's claimed N2K address.
         uint32_t can_id =
             BuildCanID(msg->priority, 0, dest_addr->address, msg->PGN.pgn);
-        wxLogMessage(wxT("$$$ prio=%i, dest=%i, pgn=%i, can_id=%u"),
-                     msg->priority, dest_addr->address, msg->PGN.pgn, can_id);
         std::stringstream ss;
         ss << std::setfill('0') << std::setw(8) << std::hex << can_id;
         for (unsigned char s : ss.str()) header_vec.push_back(s);
@@ -1602,12 +1597,9 @@ std::vector<std::vector<unsigned char>> CommDriverN2KNet::GetTxVector(
         uint8_t source = 15;
         uint32_t can_id =
             BuildCanID(msg->priority, source, dest_addr->address, msg->PGN.pgn);
-        wxLogMessage(wxT("$$$ prio=%i, source=%i, dest=%i, pgn=%i, can_id=%i, canid=%0X"),
-                     msg->priority, source, dest_addr->address, msg->PGN.pgn, can_id, can_id);
         std::stringstream ss;
         // YD only likes uppercase!
         ss << std::setfill('0') << std::setw(8) << std::hex << std::uppercase << can_id;
-        wxLogMessage(wxT("$$$ ss=%s"), ss.str());
         for (unsigned char s : ss.str()) header_vec.push_back(s);
         header_vec.push_back(' ');
         // format the required number of short packets, in a loop
@@ -1616,7 +1608,6 @@ std::vector<std::vector<unsigned char>> CommDriverN2KNet::GetTxVector(
         int cur = 0;
         int nframes =
             (payload_size > 6 ? (payload_size - 6 - 1) / 7 + 1 + 1 : 1);
-        wxLogMessage(wxT("$$$ nframes=%i"), nframes);
         bool result = true;
         for (int i = 0; i < nframes && result; i++) {
           temp[0] = i | m_order;  // frame counter
@@ -1662,13 +1653,11 @@ std::vector<std::vector<unsigned char>> CommDriverN2KNet::GetTxVector(
           for (size_t i = 0; i < out_vec.size(); ++i) {
             test << out_vec[i];
           }
-          wxLogMessage(wxT("$$$ out_vec=%s"), test);
         }  // for loop
         wxString test;
         for (size_t i = 0; i < header_vec.size(); ++i) {
           test << header_vec[i];
         }
-        wxLogMessage(wxT("$$$ header_vec=%s"), test);
       }
       
     } break;
@@ -1860,9 +1849,6 @@ bool CommDriverN2KNet::PrepareForTX() {
   // If the detected data format is N2KFormat_Actisense_N2K_ASCII,
   // then we are clearly connected to an actisense device.
   // Nothing else need be done.
-  m_n2k_format = N2KFormat_Actisense_RAW_ASCII;  // $$$ force format, only
-                                                 // format handled is this case
-  if (m_n2k_format == N2KFormat_Actisense_N2K_ASCII) return true;
 
   // Step 1.2
   // If the detected data format is N2KFormat_MiniPlex,
@@ -1910,12 +1896,9 @@ bool CommDriverN2KNet::SendN2KNetwork(
     const std::shared_ptr<const Nmea2000Msg>& msg,
     const std::shared_ptr<const NavAddr2000>& addr) {
   PrepareForTX();
-  wxLogMessage(wxT("$$$ SendSentenceNetwork "));
   std::vector<std::vector<unsigned char>> out_data = GetTxVector(msg, addr);
   bool sent = SendSentenceNetwork(out_data);
-  
-  wxLogMessage(wxT("$$$ SendSentenceNetwork returned=%i"), sent);   // 1 stand for OK, sent succeded
-  if (sent) {  // No error
+    if (sent) {  // No error
     m_driver_stats.tx_count += msg->payload.size();
 
     // Create internal message and notify upper layers (only after successful
@@ -1973,7 +1956,6 @@ bool CommDriverN2KNet::SendSentenceNetwork(
       wxDatagramSocket* udp_socket =
           dynamic_cast<wxDatagramSocket*>(GetTSock());
       if (udp_socket && udp_socket->IsOk()) {
-        wxLogMessage(wxT("$$$ socket OK"));
         wxIPV4address dest = GetAddr();
         // Send each payload vector as a separate datagram
         for (const std::vector<unsigned char>& v : payload) {
@@ -1981,7 +1963,6 @@ bool CommDriverN2KNet::SendSentenceNetwork(
           udp_socket->SendTo(dest, reinterpret_cast<const char*>(v.data()),
                              v.size());
           if (udp_socket->Error()) {
-            wxLogMessage(wxT("$$$ error socket"));
             ret = false;
             break;
           }
@@ -1989,7 +1970,6 @@ bool CommDriverN2KNet::SendSentenceNetwork(
           wxMilliSleep(1);
         }
       } else {
-        wxLogMessage(wxT("$$$ error Socket not OK, not (udp_socket && udp_socket->IsOk()"));
         ret = false;
       }
     } break;

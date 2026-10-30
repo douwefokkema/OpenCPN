@@ -354,6 +354,7 @@ bool SendPGN129285(Routeman &routeman, AbstractCommDriver *driver) {
     payload.push_back(msg129285.Data[i]);
   auto PGN129285 =
       std::make_shared<const Nmea2000Msg>(129285, payload, dest_addr, 6);
+  wxLogMessage(wxT("$$$ sending 129285"));
   fail_any |= !driver->SendMessage(PGN129285, dest_addr);
 
   return (fail_any == 0);

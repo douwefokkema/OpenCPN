@@ -70,21 +70,21 @@ bool IsFastMessagePGN(unsigned pgn) {
   return found != haystack.end();
 }
 
-uint32_t BuildCanID(uint8_t priority, uint8_t source, uint8_t destination, uint32_t pgn) {
+uint32_t BuildCanID(uint8_t priority, uint8_t source, uint8_t destination,
+                    uint32_t pgn) {
   // build CanID
   unsigned long cid = 0;
   unsigned char pf = (unsigned char)(pgn >> 8);
   pf &= 0xff;
-  if (pf < 240) {  // PDU1 format 
+  if (pf < 240) {  // PDU1 format
     cid = ((unsigned long)(priority & 0x7)) << 26 | pgn << 8 |
           ((unsigned long)destination) << 8 | (unsigned long)source;
-  } else {        // PDU2 format
+  } else {  // PDU2 format
     cid = ((unsigned long)(priority & 0x7)) << 26 | pgn << 8 |
           (unsigned long)source;
   }
   return cid;
 }
-
 
 // CanHeader implementation
 

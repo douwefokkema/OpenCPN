@@ -91,7 +91,8 @@ static const std::string kGpsdDevice = _("Gpsd server");
 static const std::string kSignalkDevice = _("SignalK server");
 static const std::string kTcpClient = _("TCP client");
 static const std::string kUdpSend = _("Device(s) receiving UDP");
-static const std::string kUdpSendandReceive = _("Device(s) receiving and sending UDP");
+static const std::string kUdpSendandReceive =
+    _("Device(s) receiving and sending UDP");
 static const std::string kGpsdClient = _("Gpsd client");
 static const std::string kSignalkClient = _("SignalK client");
 static const std::string kTcpServer = _("TCP Server");
@@ -100,8 +101,8 @@ static const std::string kMulticastServer = _("UDP Multicast Receive and Send");
 static const std::string kMulticastClient = _("UDP Multicast Send");
 
 static const std::vector<std::string> kBasicNetViews = {
-    kTcpDevice, kUdpReceive, kUdpSend, kUdpSendandReceive, kGpsdDevice,
-    kSignalkDevice};
+    kTcpDevice,         kUdpReceive, kUdpSend,
+    kUdpSendandReceive, kGpsdDevice, kSignalkDevice};
 
 static const std::vector<std::string> kAdvancedNetViews = {
     // First items matches kBasicNetViews
@@ -525,7 +526,8 @@ void ConnectionEditDialog::ConfigureControlsForView(const std::string& view) {
       net_port_w_help->SetHelp(_("Port number (1025 - 65535, often 10110)"));
     m_input_chkbox->SetValue(true);
     m_output_chkbox->SetValue(false);
-  } else if (view == kUdpSend || view == kUdpOutput || view == kUdpSendandReceive) {
+  } else if (view == kUdpSend || view == kUdpOutput ||
+             view == kUdpSendandReceive) {
     if (m_net_address_tctrl->GetValue() == "0.0.0.0")
       net_addr_w_help->RestoreHelp();
     if (net_addr_w_help->IsPristine())

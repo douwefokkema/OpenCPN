@@ -869,7 +869,6 @@ bool CommDriverN2KNet::ProcessActisense_NGT(
 
 bool CommDriverN2KNet::ProcessActisense_ASCII_RAW(
     const std::vector<unsigned char>& packet) {
-
   can_frame frame;
 
   while (!m_circle.IsEmpty()) {
@@ -886,10 +885,10 @@ bool CommDriverN2KNet::ProcessActisense_ASCII_RAW(
       m_sentence.clear();
       wxStringTokenizer tkz(ss, " ");
 
-      // Frames without valid time stamp and Transmit (T) frames are considered not valid.
-      // Tx frames are frames that were transmitted by devices on the net,
-      // we do not want to receice our own frames again.
-      // This means that devices on the network can not communicate with each other
+      // Frames without valid time stamp and Transmit (T) frames are considered
+      // not valid. Tx frames are frames that were transmitted by devices on the
+      // net, we do not want to receice our own frames again. This means that
+      // devices on the network can not communicate with each other
       bool valid_frame = true;
 
       // Discard first token
@@ -1284,7 +1283,9 @@ void CommDriverN2KNet::OnSocketEvent(wxSocketEvent& event) {
       if (m_detect_count <= 0) m_n2k_format = DetectFormat(data);
       if (m_n2k_format != m_n2k_format) {
         wxLogMessage(wxT("Current network message format = %i"), m_n2k_format);
-        wxLogMessage(wxT("Can only transmit N2KFormat_Actisense_RAW_ASCII (same as YD raw format"));
+        wxLogMessage(
+            wxT("Can only transmit N2KFormat_Actisense_RAW_ASCII (same as YD "
+                "raw format"));
       }
 
       switch (m_n2k_format) {
@@ -1599,7 +1600,8 @@ std::vector<std::vector<unsigned char>> CommDriverN2KNet::GetTxVector(
             BuildCanID(msg->priority, source, dest_addr->address, msg->PGN.pgn);
         std::stringstream ss;
         // YD only likes uppercase!
-        ss << std::setfill('0') << std::setw(8) << std::hex << std::uppercase << can_id;
+        ss << std::setfill('0') << std::setw(8) << std::hex << std::uppercase
+           << can_id;
         for (unsigned char s : ss.str()) header_vec.push_back(s);
         header_vec.push_back(' ');
         // format the required number of short packets, in a loop
@@ -1659,7 +1661,7 @@ std::vector<std::vector<unsigned char>> CommDriverN2KNet::GetTxVector(
           test << header_vec[i];
         }
       }
-      
+
     } break;
     case N2KFormat_Actisense_N2K_ASCII: {
       // Source: Actisense own documentation `NMEA 2000 ASCII Output
@@ -1898,7 +1900,7 @@ bool CommDriverN2KNet::SendN2KNetwork(
   PrepareForTX();
   std::vector<std::vector<unsigned char>> out_data = GetTxVector(msg, addr);
   bool sent = SendSentenceNetwork(out_data);
-    if (sent) {  // No error
+  if (sent) {  // No error
     m_driver_stats.tx_count += msg->payload.size();
 
     // Create internal message and notify upper layers (only after successful
